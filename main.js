@@ -6,10 +6,16 @@ const gql = require('graphql-tag')
 const fetch = require('node-fetch')
 
 const cache = new boost.InMemoryCache()
+
+const token = process.env.TOKEN
 const link = new boost.HttpLink({
   uri: 'https://api.github.com/graphql',
-  fetch: fetch
+  fetch: fetch,
+  headers: {
+    authorization: `Bearer ${token}`
+  }
 })
+
 const client = new boost.ApolloClient({ cache, link })
 
 client
