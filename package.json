@@ -1,0 +1,26 @@
+{
+  "name": "github-column-counter",
+  "version": "0.1.0",
+  "description": "Tally up all the score tags on a GitHub project board.",
+  "keywords": [],
+  "main": "./main.js",
+  "bin": "./main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mike Coats <i.am@mikecoats.com>",
+  "license": "GPL-3.0-or-later",
+  "repository": "github:MikeCoats/github-column-counter",
+  "bugs": {
+    "url": "https://github.com/MikeCoats/github-column-counter/issues"
+  },
+  "dependencies": {
+    "apollo-boost": "^0.1.27",
+    "graphql": "^14.1.1",
+    "graphql-tag": "^2.10.1",
+    "node-fetch": "^2.3.0"
+  },
+  "devDependencies": {
+    "standard": "^12.0.1"
+  }
+}
