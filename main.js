@@ -1,9 +1,42 @@
 #!/usr/bin/env node
 /* jshint esversion: 6 */
+'use strict'
 
 const boost = require('apollo-boost')
 const gql = require('graphql-tag')
 const fetch = require('node-fetch')
+
+class Label {
+  constructor(name) {
+    this.name = name
+  }
+
+  get points() {
+    return 0
+  }
+}
+
+class Issue {
+  constructor(title, labels) {
+    this.title = title
+    this.labels = labels
+  }
+
+  get points() {
+    return this.labels.reduce((pts, label) => pts + label.points)
+  }
+}
+
+class Column {
+  constructor(name, issues) {
+    this.name = name
+    this.issues = issues
+  }
+
+  get points() {
+    return this.issues.reduce((pts, issue) => pts + issue.points)
+  }
+}
 
 const cache = new boost.InMemoryCache()
 
@@ -23,7 +56,7 @@ const repoProjectQuery = gql`
               nodes {
                 content {
                    ... on Issue {
-                    labels(first:10) {
+                    title, labels(first:10) {
                       nodes {
                         name
                       }
@@ -55,14 +88,21 @@ client
     query: repoProjectQuery
   })
   .then(result => {
-    console.log(result.data)
-
     const columns = result.data.repository.projects.nodes[0].columns.nodes.map(
       x => {
-        return x.name
+        const issues = x.cards.nodes.map(y => {
+          const labels = y.content.labels.nodes.map(z => {
+            return new Label(z.name)
+          })
+          return new Issue(y.content.title, labels)
+        })
+        return new Column(x.name, issues)
       }
     )
 
-    console.log(columns)
+    console.log(JSON.stringify(columns))
+    columns.forEach(col => {
+      console.log(col.name + ': ' + JSON.stringify(col.points))
+    })
   })
   .catch(err => console.error(err))
