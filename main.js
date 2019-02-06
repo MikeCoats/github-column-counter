@@ -6,50 +6,97 @@ const boost = require('apollo-boost')
 const gql = require('graphql-tag')
 const fetch = require('node-fetch')
 
+/**
+ * A label on an issue.
+ */
 class Label {
-  constructor(name) {
+  /**
+   * Create a new label, with a supplied name.
+   * @param {*} name
+   */
+  constructor (name) {
     this.name = name
   }
 
-  get points() {
-    const parsedName = parseInt(this.name, 10)
-    if (!isNaN(parsedName)) {
-      return pts
+  /**
+   * Get the number of points the label represents.
+   */
+  get points () {
+    const labelSuffixRegex = /^(\d+)[\s-:]*(?:story?)?[\s-:]*(?:points?)?$/i
+    const labelPrefixRegex = /^(?:story?)?[\s-:]*(?:points?)?[\s-:]*(\d+)$/i
+
+    const suffixMatched = labelSuffixRegex.exec(this.name)
+    if (suffixMatched && suffixMatched.length > 1) {
+      const parsed = parseInt(suffixMatched[1], 10)
+      if (!isNaN(parsed)) {
+        return parsed
+      }
+    }
+
+    const labelPrefixResults = labelPrefixRegex.exec(this.name)
+    if (labelPrefixResults && labelPrefixResults.length > 1) {
+      const parsed = parseInt(labelPrefixResults[1], 10)
+      if (!isNaN(parsed)) {
+        return parsed
+      }
     }
 
     return 0
   }
 }
 
+/**
+ * An issue in a column.
+ */
 class Issue {
-  constructor(title, labels) {
+  /**
+   * Create a new issue, with a supplied title and list of labels.
+   * @param {*} title title of the issue
+   * @param {*} labels list of labels on the issue
+   */
+  constructor (title, labels) {
     this.title = title
     this.labels = labels
   }
 
-  get points() {
-    return this.labels.reduce((pts, label) => pts + label.points)
+  /**
+   * Get the total number of points in the labels on the issue.
+   */
+  get points () {
+    return this.labels.reduce((pts, label) => pts + label.points, 0)
   }
 }
 
+/**
+ * A column on a project board.
+ */
 class Column {
-  constructor(name, issues) {
+  /**
+   * Create a new column, with a supplied name and list of issues.
+   * @param {*} name name of the column
+   * @param {*} issues list of issues in the column
+   */
+  constructor (name, issues) {
     this.name = name
     this.issues = issues
   }
 
-  get points() {
-    return this.issues.reduce((pts, issue) => pts + issue.points)
+  /**
+   * Get the total number of points in the issues in the column.
+   */
+  get points () {
+    return this.issues.reduce((pts, issue) => pts + issue.points, 0)
   }
 }
 
-const cache = new boost.InMemoryCache()
-
+// Various variables that define how and where we're looking for points.
 const token = process.env.TOKEN
 const owner = 'MikeCoats'
 const repo = 'github-column-counter'
 const project = 'Test Example Board'
 
+// This is a query that gets the columns, issues & labels from a
+// repository-level project.
 const repoProjectQuery = gql`
 {
   repository(owner: "${owner}", name: "${repo}") {
@@ -78,6 +125,9 @@ const repoProjectQuery = gql`
 }
 `
 
+// Establish a link for Apollo connecting to the GitHub API using the supplied
+// fetch library as we're using node---not a browser--- with a token for
+// authentication.
 const link = new boost.HttpLink({
   uri: 'https://api.github.com/graphql',
   fetch: fetch,
@@ -86,8 +136,15 @@ const link = new boost.HttpLink({
   }
 })
 
-const client = new boost.ApolloClient({ cache, link })
+// Create a new client using a memory based cache over the link.
+const client = new boost.ApolloClient({
+  cache: new boost.InMemoryCache(),
+  link
+})
 
+// Get the results of the query, then parse the returned data into a collection
+// of objects. We then use the getter methods on the objects to map-reduce our
+// way to a list of columns and totals.
 client
   .query({
     query: repoProjectQuery
@@ -105,9 +162,8 @@ client
       }
     )
 
-    console.log(JSON.stringify(columns))
     columns.forEach(col => {
-      console.log(col.name + ': ' + JSON.stringify(col.points))
+      console.log(`${col.name}: ${col.points}`)
     })
   })
   .catch(err => console.error(err))
