@@ -12,6 +12,11 @@ class Label {
   }
 
   get points() {
+    const parsedName = parseInt(this.name, 10)
+    if (!isNaN(parsedName)) {
+      return pts
+    }
+
     return 0
   }
 }
