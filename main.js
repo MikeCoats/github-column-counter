@@ -5,6 +5,7 @@
 const boost = require('apollo-boost')
 const gql = require('graphql-tag')
 const fetch = require('node-fetch')
+const argv = require('yargs').argv
 
 /**
  * A label on an issue.
@@ -89,11 +90,29 @@ class Column {
   }
 }
 
-// Various variables that define how and where we're looking for points.
-const token = process.env.TOKEN
-const owner = 'MikeCoats'
-const repo = 'github-column-counter'
-const project = 'Test Example Board'
+// Try to get the auth token from the environment.
+let token = ''
+if(process.env.TOKEN) {
+  token = process.env.TOKEN
+}
+
+// Try to get the owner from the command line.
+let owner = ''
+if(argv.owner) {
+  owner = argv.owner
+}
+
+// Try to get the repository from the command line.
+let repo = ''
+if(argv.repo) {
+  repo = argv.repo
+}
+
+// Try to get the project from the command line.
+let project = ''
+if(argv.project) {
+  project = argv.project
+}
 
 // This is a query that gets the columns, issues & labels from a
 // repository-level project.
