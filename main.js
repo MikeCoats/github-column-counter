@@ -7,6 +7,9 @@ const gql = require('graphql-tag')
 const fetch = require('node-fetch')
 const argv = require('yargs').argv
 
+const Label = require('./models/label');
+const Issue = require('./models/issue');
+const Column = require('./models/column');
 
 
 // Try to get the auth token from the environment.
