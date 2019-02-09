@@ -3,7 +3,6 @@
 'use strict'
 
 const boost = require('apollo-boost')
-const gql = require('graphql-tag')
 const fetch = require('node-fetch')
 const argv = require('yargs').argv
 
@@ -11,6 +10,7 @@ const Label = require('./models/label');
 const Issue = require('./models/issue');
 const Column = require('./models/column');
 
+const queries = require('./queries');
 
 // Try to get the auth token from the environment.
 let token = ''
@@ -36,36 +36,6 @@ if(argv.project) {
   project = argv.project
 }
 
-// This is a query that gets the columns, issues & labels from a
-// repository-level project.
-const repoProjectQuery = gql`
-{
-  repository(owner: "${owner}", name: "${repo}") {
-    projects(orderBy: { field: CREATED_AT, direction: DESC }, search:"${project}", first: 1) {
-      nodes {
-        columns(first:10) {
-          nodes {
-            name, cards(first:100) {
-              nodes {
-                content {
-                   ... on Issue {
-                    title, labels(first:10) {
-                      nodes {
-                        name
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-`
-
 // Establish a link for Apollo connecting to the GitHub API using the supplied
 // fetch library as we're using node---not a browser--- with a token for
 // authentication.
@@ -83,28 +53,39 @@ const client = new boost.ApolloClient({
   link
 })
 
+function parseColumns(columns) {
+  const parsedCols = columns.nodes.map(x => {
+    const issues = x.cards.nodes.map(y => {
+      const labels = y.content.labels.nodes.map(z => {
+        return new Label(z.name);
+      });
+      return new Issue(y.content.title, labels);
+    });
+    return new Column(x.name, issues);
+  });
+
+  return parsedCols;
+}
+
 // Get the results of the query, then parse the returned data into a collection
 // of objects. We then use the getter methods on the objects to map-reduce our
 // way to a list of columns and totals.
-client
-  .query({
-    query: repoProjectQuery
-  })
-  .then(result => {
-    const columns = result.data.repository.projects.nodes[0].columns.nodes.map(
-      x => {
-        const issues = x.cards.nodes.map(y => {
-          const labels = y.content.labels.nodes.map(z => {
-            return new Label(z.name)
-          })
-          return new Issue(y.content.title, labels)
-        })
-        return new Column(x.name, issues)
-      }
-    )
+async function main() {
+  try {
+    const result = await client.query({
+      query: queries.ownerRepositoryProject(owner, repo, project)
+    });
+
+    const columns = parseColumns(
+      result.data.repository.projects.nodes[0].columns
+    );
 
     columns.forEach(col => {
-      console.log(`${col.name}: ${col.points}`)
-    })
-  })
-  .catch(err => console.error(err))
+      console.log(`${col.name}: ${col.points}`);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+main();
