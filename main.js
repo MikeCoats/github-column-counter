@@ -12,46 +12,14 @@ const Column = require('./models/column');
 
 const queries = require('./queries');
 
-// Try to get the auth token from the environment.
-let token = '';
-if (process.env.TOKEN) {
-  token = process.env.TOKEN;
+function getArguments(env, argv) {
+  return {
+    token: env && env.TOKEN ? env.TOKEN : '',
+    owner: argv && argv.owner ? argv.owner : '',
+    repo: argv && argv.repo ? argv.repo : '',
+    project: argv && argv.project ? argv.project : ''
+  };
 }
-
-// Try to get the owner from the command line.
-let owner = '';
-if (argv.owner) {
-  owner = argv.owner;
-}
-
-// Try to get the repository from the command line.
-let repo = '';
-if (argv.repo) {
-  repo = argv.repo;
-}
-
-// Try to get the project from the command line.
-let project = '';
-if (argv.project) {
-  project = argv.project;
-}
-
-// Establish a link for Apollo connecting to the GitHub API using the supplied
-// fetch library as we're using node---not a browser--- with a token for
-// authentication.
-const link = new boost.HttpLink({
-  uri: 'https://api.github.com/graphql',
-  fetch,
-  headers: {
-    authorization: `Bearer ${token}`
-  }
-});
-
-// Create a new client using a memory based cache over the link.
-const client = new boost.ApolloClient({
-  cache: new boost.InMemoryCache(),
-  link
-});
 
 function parseColumns(columns) {
   const parsedCols = columns.nodes.map(x => {
@@ -63,17 +31,42 @@ function parseColumns(columns) {
     });
     return new Column(x.name, issues);
   });
-
   return parsedCols;
 }
 
-// Get the results of the query, then parse the returned data into a collection
-// of objects. We then use the getter methods on the objects to map-reduce our
-// way to a list of columns and totals.
 async function main() {
+  const theArgs = getArguments(process.env, argv);
+
+  if (
+    theArgs.token === '' ||
+    theArgs.owner === '' ||
+    theArgs.repo === '' ||
+    theArgs.project === ''
+  ) {
+    console.error('Nope.');
+    return;
+  }
+
+  const link = new boost.HttpLink({
+    uri: 'https://api.github.com/graphql',
+    fetch,
+    headers: {
+      authorization: `Bearer ${theArgs.token}`
+    }
+  });
+
+  const client = new boost.ApolloClient({
+    cache: new boost.InMemoryCache(),
+    link
+  });
+
   try {
     const result = await client.query({
-      query: queries.ownerRepositoryProject(owner, repo, project)
+      query: queries.ownerRepositoryProject(
+        theArgs.owner,
+        theArgs.repo,
+        theArgs.project
+      )
     });
 
     const columns = parseColumns(
@@ -89,3 +82,5 @@ async function main() {
 }
 
 main();
+
+module.exports = {getArguments, parseColumns};

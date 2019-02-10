@@ -1,6 +1,7 @@
 # GitHub Column Counter
 
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/xojs/xo)
+[![Coverage Status](https://coveralls.io/repos/github/MikeCoats/github-column-counter/badge.svg?branch=master)](https://coveralls.io/github/MikeCoats/github-column-counter?branch=master)
 
 ## Description
 
