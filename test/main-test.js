@@ -174,3 +174,33 @@ test('valid owner repository project result parsed', t => {
   t.is(cols[4].points, 8);
   t.is(cols[4].issues.length, 2);
 });
+
+test('null env & args object returns empty strings', t => {
+  const args = main.getArguments(null, null);
+  t.truthy(args);
+  t.is(args.token, '');
+  t.is(args.owner, '');
+  t.is(args.repo, '');
+  t.is(args.project, '');
+});
+
+test('empty env & args object returns empty strings', t => {
+  const args = main.getArguments({}, {});
+  t.truthy(args);
+  t.is(args.token, '');
+  t.is(args.owner, '');
+  t.is(args.repo, '');
+  t.is(args.project, '');
+});
+
+test('filled env & args object returns expected strings', t => {
+  const args = main.getArguments(
+    {TOKEN: 'test1'},
+    {owner: 'test2', repo: 'test3', project: 'test4'}
+  );
+  t.truthy(args);
+  t.is(args.token, 'test1');
+  t.is(args.owner, 'test2');
+  t.is(args.repo, 'test3');
+  t.is(args.project, 'test4');
+});
